@@ -307,20 +307,39 @@ export default function NovoOrcamentoScreen() {
         <View style={styles.sectionTitleRow}>
           <Ionicons name="person" size={16} color={COLORS.brandPrimary} />
           <Text style={styles.sectionTitle}>Cliente</Text>
-          {clientesDB.length > 0 && (
-            <Pressable
-              style={styles.linkBtn}
-              onPress={() => {
-                setClienteQuery("");
-                setShowClientePicker(true);
-              }}
-              testID="cliente-picker-btn"
-            >
-              <Ionicons name="people" size={12} color={COLORS.brandPrimary} />
-              <Text style={styles.linkText}>Escolher existente</Text>
-            </Pressable>
-          )}
         </View>
+
+        {/* Dual picker: Existente vs Novo */}
+        <View style={styles.clientePickerRow}>
+          <Pressable
+            style={[styles.clientePickerBtn, clientesDB.length === 0 && { opacity: 0.5 }]}
+            disabled={clientesDB.length === 0}
+            onPress={() => {
+              setClienteQuery("");
+              setShowClientePicker(true);
+            }}
+            testID="cliente-picker-btn"
+          >
+            <Ionicons name="people" size={22} color={COLORS.brandPrimary} />
+            <Text style={styles.clientePickerTitle}>Cliente Existente</Text>
+            <Text style={styles.clientePickerSub}>
+              {clientesDB.length} guardado{clientesDB.length === 1 ? "" : "s"}
+            </Text>
+          </Pressable>
+          <Pressable
+            style={styles.clientePickerBtn}
+            onPress={() => {
+              setCliente({ nome: "", nif: "", contacto: "", morada: "" });
+              Haptics.selectionAsync();
+            }}
+            testID="cliente-novo-btn"
+          >
+            <Ionicons name="person-add" size={22} color="#B45309" />
+            <Text style={[styles.clientePickerTitle, { color: "#B45309" }]}>Cliente Novo</Text>
+            <Text style={styles.clientePickerSub}>Preencher abaixo</Text>
+          </Pressable>
+        </View>
+
         <FormField
           label="Nome"
           value={cliente.nome}
@@ -893,6 +912,31 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.pill,
   },
   linkText: { color: COLORS.brandPrimary, fontWeight: "700", fontSize: 11 },
+  clientePickerRow: {
+    flexDirection: "row",
+    gap: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  clientePickerBtn: {
+    flex: 1,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    alignItems: "center",
+    gap: 4,
+  },
+  clientePickerTitle: {
+    fontWeight: "800",
+    fontSize: 13,
+    color: COLORS.brandPrimary,
+    marginTop: 4,
+  },
+  clientePickerSub: {
+    color: COLORS.muted,
+    fontSize: 11,
+  },
   label: {
     fontSize: 11,
     fontWeight: "700",

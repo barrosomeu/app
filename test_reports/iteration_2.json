@@ -1,0 +1,40 @@
+{
+  "summary": "Iteration 2 — Clientes & Serviços catalog + historical import. Backend: 29/29 pytest tests PASS (test_clientes_servicos_api.py + test_orcamentos_api.py). Frontend e2e mobile (390x844): 4 tabs render (Orçamentos/Novo/Clientes/Definições). Orçamentos tab shows 6 historical (2026105-2026110) total 11 700,00 €. Clientes tab shows 5 seeded clients with avatars/search/add-btn/trash. Novo screen: cliente-picker opens, lists all 5 clients, tapping Clara fills form (cliente-nome='Clara'). Servico-picker (Catálogo) lists 13 historical serviços incl. 'Lavar e aplicação de massa WEBER', tapping pre-fills draft-descricao + draft-preco. Auto-record verified: POSTing orçamento with new cliente/servico creates them; repeating increments uso_count without duplicating cliente. Bulk import is idempotent (skips existing numero). Cleaned up TEST_ artifacts left over from previous test runs.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Novo Orçamento", "issues": ["Hot reload triggered during test — UI was updated from a small 'Escolher existente' pill to large 'Cliente Existente / Cliente Novo' selector cards. Both versions work; just noting that the testID 'cliente-picker-btn' is still attached and functional."]}
+    ],
+    "react_native_issues": [
+      {"component": "console warnings", "issue": "Deprecated style props: 'shadow*' (use 'boxShadow') and 'props.pointerEvents' (use 'style.pointerEvents'). Source not pinpointed — likely from a vendor component. Reference: browser console logs."}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_clientes_servicos_api.py",
+    "/app/backend/tests/test_orcamentos_api.py",
+    "/app/test_reports/pytest/iteration_2.xml"
+  ],
+  "action_items": [
+    "Counter for orc_2026 was bumped to 2026204 by automated tests. If main agent wants the next visible number to be 2026111, run: db.counters.update_one({'_id':'orc_2026'},{'$set':{'seq':110}}). Otherwise no functional impact.",
+    "Old test file test_orcamentos_api.py creates TEST_Cliente Lda / TEST_Seq via POST /api/orcamentos which auto-records them as clientes/servicos. The new test file already cleans them up, but consider deleting the auto-recorded cliente/servico from the older test as well (already cleaned manually this run).",
+    "Investigate deprecated style prop warnings (shadow* and pointerEvents) — low priority but accumulates in dev console.",
+    "Cliente picker uses testID pattern 'pick-cliente-{nome}' (by name, not id). Works but is fragile if two clients share the same first chars. Consider switching to id-based pattern like servico picker."
+  ],
+  "critical_code_review_comments": [
+    "_auto_record_cliente uses regex '^name$' with case-insensitive match — name containing regex special chars (e.g., parentheses) could break. Consider re.escape().",
+    "_auto_record_servicos overwrites preco_unitario/iva/unidade from latest orcamento every time uso_count is incremented. This is acceptable but means catalog price can drift from a historical orçamento.",
+    "Frontend search in Clientes filters by c.nif.includes(search) and c.contacto.includes(search) without null/case guards — fine because backend always returns strings, but worth defensive coding.",
+    "POST /api/orcamentos returns 409 on duplicate numero but POST /api/orcamentos/import silently skips — inconsistent UX; fine for bulk import but worth a returned 'skipped' list."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_clientes_servicos_api.py (created — 5 test classes, 19 tests)"
+  ],
+  "success_rate": {"backend": "100% (29/29)", "frontend": "100% of critical flows verified"},
+  "seed_data_creation": "No new seed data. Cleaned up leftover TEST_Cliente Lda, TEST_Seq, Cliente Teste Clone, and stale servicos (Pintura/Material/Isento) from previous test runs.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend counter for orc_2026 is at 204 (next-number 2026205). All 6 historical orçamentos (2026105-2026110) are intact, total 11 700 €. 5 clientes and 13 catalog serviços (+1 leftover 'Teste' servico from prior manual testing — not deleted, harmless). Both test files in /app/backend/tests/ should be used for regression. testIDs: tab-{orcamentos|novo|clientes|definicoes}, cliente-picker-btn (renders even after recent UI change), servico-picker-btn, pick-cliente-{nome}, pick-servico-{id}, add-cliente-btn, cliente-card-{id}, cliente-delete-{id}, search-cliente, form-{nome|nif|contacto|morada|notas}, save-cliente-btn.",
+  "rca_of_issue": "N/A — no bugs found in scoped features."
+}

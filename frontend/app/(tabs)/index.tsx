@@ -8,12 +8,16 @@ import {
   RefreshControl,
   ActivityIndicator,
   ScrollView,
+  Alert,
+  Platform,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
 
 import { api, Orcamento } from "@/src/api/orcamentos";
 import {
@@ -67,6 +71,97 @@ export default function OrcamentosScreen() {
 
   const totalSum = items.reduce((s, o) => s + (o.total || 0), 0);
 
+  async function exportCsv() {
+    if (items.length === 0) {
+      Alert.alert("Sem dados", "Não há orçamentos para exportar.");
+      return;
+    }
+    try {
+      const headers = [
+        "Nº",
+        "Data Emissão",
+        "Validade",
+        "Cliente",
+        "NIF",
+        "Contacto",
+        "Morada",
+        "Obra",
+        "Para Seguro",
+        "Seguradora",
+        "Apólice",
+        "Estado",
+        "Nº Itens",
+        "Subtotal (€)",
+        "IVA (€)",
+        "Total (€)",
+        "Observações",
+      ];
+      const esc = (v: any) => {
+        const s = String(v ?? "").replace(/"/g, '""').replace(/\r?\n/g, " ");
+        return `"${s}"`;
+      };
+      const num = (v: number) =>
+        new Intl.NumberFormat("pt-PT", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+          useGrouping: false,
+        }).format(v || 0).replace(".", ",");
+      const rows = items.map((o) => [
+        o.numero,
+        o.data_emissao,
+        o.validade_ate,
+        o.cliente_nome,
+        o.cliente_nif,
+        o.cliente_contacto,
+        o.cliente_morada,
+        o.obra,
+        o.para_seguro ? "Sim" : "Não",
+        o.seguradora,
+        o.apolice,
+        o.status,
+        o.items.length,
+        num(o.subtotal),
+        num(o.total_iva),
+        num(o.total),
+        o.observacoes,
+      ]);
+      // Excel PT-PT: separator=;
+      const sep = ";";
+      const csv =
+        "\uFEFF" +
+        [headers, ...rows].map((r) => r.map(esc).join(sep)).join("\r\n");
+
+      const fileName = `orcamentos_construcoes_barros_${new Date()
+        .toISOString()
+        .slice(0, 10)}.csv`;
+      const uri = FileSystem.documentDirectory + fileName;
+      await FileSystem.writeAsStringAsync(uri, csv, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+      const ok = await Sharing.isAvailableAsync();
+      if (ok) {
+        await Sharing.shareAsync(uri, {
+          mimeType: "text/csv",
+          dialogTitle: "Exportar Orçamentos",
+          UTI: "public.comma-separated-values-text",
+        });
+      } else if (Platform.OS === "web") {
+        // Web fallback: trigger download
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        Alert.alert("Partilha indisponível", "Não foi possível partilhar o ficheiro.");
+      }
+    } catch (e: any) {
+      Alert.alert("Erro", e?.message ?? "Falha ao exportar");
+    }
+  }
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* HEADER */}
@@ -84,6 +179,14 @@ export default function OrcamentosScreen() {
             <Text style={styles.headerTitle}>Construções Barros</Text>
             <Text style={styles.headerSubtitle}>Orçamentos</Text>
           </View>
+          <Pressable
+            style={styles.exportBtn}
+            onPress={exportCsv}
+            testID="export-csv-btn"
+            hitSlop={8}
+          >
+            <Ionicons name="download-outline" size={18} color="#fff" />
+          </Pressable>
         </View>
 
         <View style={styles.statsRow}>
@@ -245,6 +348,16 @@ const styles = StyleSheet.create({
   },
   headerTitle: { color: "#fff", fontSize: 18, fontWeight: "800" },
   headerSubtitle: { color: "#E0E7FF", fontSize: 13, marginTop: 2 },
+  exportBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   statsRow: { flexDirection: "row", gap: SPACING.md, marginTop: SPACING.lg },
   statCard: {
     flex: 1,

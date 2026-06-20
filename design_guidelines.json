@@ -1,0 +1,165 @@
+{
+  "app_name": "Construções Barros",
+  "personality": "1 iOS-Native Clean",
+  "personality_one_liner": "A sharp, official, and highly professional construction quote utility that instills confidence and legal compliance.",
+  "color": {
+    "surface": "#F8FAFC",
+    "onSurface": "#0F172A",
+    "surfaceSecondary": "#FFFFFF",
+    "onSurfaceSecondary": "#1E293B",
+    "surfaceTertiary": "#F1F5F9",
+    "onSurfaceTertiary": "#334155",
+    "surfaceInverse": "#1E293B",
+    "onSurfaceInverse": "#F8FAFC",
+    "brand": "#1E40AF",
+    "brandPrimary": "#1E40AF",
+    "onBrandPrimary": "#FFFFFF",
+    "brandSecondary": "#FBBF24",
+    "onBrandSecondary": "#0F172A",
+    "brandTertiary": "#E0E7FF",
+    "onBrandTertiary": "#1E40AF",
+    "success": "#059669",
+    "onSuccess": "#FFFFFF",
+    "warning": "#D97706",
+    "onWarning": "#FFFFFF",
+    "error": "#DC2626",
+    "onError": "#FFFFFF",
+    "info": "#3B82F6",
+    "onInfo": "#FFFFFF",
+    "border": "#E2E8F0",
+    "borderStrong": "#CBD5E1",
+    "divider": "#F1F5F9"
+  },
+  "typography": {
+    "displayFontFamily": "Plus Jakarta Sans",
+    "textFontFamily": "Plus Jakarta Sans",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Use iOS-native generous vertical spacing. Use md/lg for internal card padding, and xl for section separations. Thumb zone CTA MUST be sticky at bottom.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 6,
+    "md": 12,
+    "lg": 20,
+    "pill": 999
+  },
+  "shadow_tier": "1",
+  "navigation": "bottom_tabs",
+  "icon_set": "Ionicons",
+  "glassmorphism": {
+    "enabled": true,
+    "do's": [
+      "Use glassmorphism for the bottom tab bar.",
+      "Use glassmorphism for sticky action button containers at the bottom of scrolling forms.",
+      "Use glassmorphism on the sticky header when scrolling down long itemized lists."
+    ],
+    "dont's": [
+      "Do not use glassmorphism on standard form inputs or list cards.",
+      "Do not over-blur the line item data."
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Orçamentos (Home/List)",
+      "purpose": "View past quotes history, segmented by Draft/Sent/Accepted.",
+      "states": {
+        "loading": "Centered spinner with 'A carregar orçamentos...'",
+        "empty": "Illustration of a blank clipboard. Text: 'Nenhum orçamento criado'. Primary CTA: 'Criar Novo Orçamento'.",
+        "error": "Text: 'Erro ao carregar lista.' with Retry button."
+      },
+      "layout": "Header: Title 'Orçamentos'. Top: Segmented control (Rascunho, Enviado, Aceite). Body: Scrollable list of cards. Each card displays Client Name, Quote Number (e.g. 2026001), Date, Status Badge, and Total Value (€). Use single column layout (width 100% minus padding)."
+    },
+    {
+      "name": "Criar Orçamento (Create Form)",
+      "purpose": "A guided, phone-first workflow to draft a professional quote without spreadsheet friction.",
+      "states": {
+        "loading": "Skeleton of form inputs.",
+        "empty": "N/A - this is a form screen.",
+        "error": "Toast overlay if save fails."
+      },
+      "layout": "Single scrollable form. Sticky bottom action bar ('Guardar & Pré-visualizar') layered with glass. Section 1: Client Info (Name, NIF, Address). Section 2: Seguros/Sinistro Info (optional). Section 3: Line Items. DO NOT use horizontal scrolling tables. Display each line item as a vertical card (Name, Qty x Unit, Unit Price, Line Total). Add Item button opens a bottom sheet to input item details. Section 4: Observations. Footer: Auto-calculated Subtotal, IVA, Total."
+    },
+    {
+      "name": "Line Item Detail (Bottom Sheet)",
+      "purpose": "Input individual work items quickly via a half-screen modal.",
+      "states": {
+        "loading": "N/A",
+        "empty": "N/A",
+        "error": "Inline validation text."
+      },
+      "layout": "Presented via @gorhom/bottom-sheet. Inputs: Descrição (Text), Quantidade (Numeric), Unidade (M2, ML, UN, etc), Preço Unitário (Numeric), IVA % (Dropdown/Segment). Sticky 'Adicionar' button at bottom of sheet."
+    },
+    {
+      "name": "Preview & Partilhar",
+      "purpose": "Final visual check of the quote and actions to generate PDF or Share.",
+      "states": {
+        "loading": "Spinner generating PDF...",
+        "empty": "N/A",
+        "error": "Text: 'Erro ao gerar PDF' + Retry."
+      },
+      "layout": "Visual representation of the physical 'Orçamento' document. Sticky bottom FAB or full-width action bar with two buttons: 'Partilhar PDF' (WhatsApp/Email icon) and 'Aprovar Orçamento'. PDF Layout specs: Logo top left, company details top right. 'ORÇAMENTO PARA CLIENTE / SEGURO' title block. Client info box. Table format for items. Totals at bottom. Acceptance signature block."
+    },
+    {
+      "name": "Definições",
+      "purpose": "Manage the fixed company template data.",
+      "states": {
+        "loading": "N/A",
+        "empty": "N/A",
+        "error": "N/A"
+      },
+      "layout": "iOS grouped list style. Pre-filled with: António Virgílio Marques Barros, NIF 195060822, Address Eira Velha 1 Valença, Tel 930582585, Email construcoesbarros.valenca@gmail.com. Toggle for default IVA rate."
+    }
+  ],
+  "images": {
+    "empty_state_clipboard": {
+      "url": "https://images.unsplash.com/photo-1651760680066-db9d32bd0357?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NjZ8MHwxfHNlYXJjaHwyfHxjbGlwYm9hcmQlMjBkb2N1bWVudHMlMjBwcm9mZXNzaW9uYWx8ZW58MHx8fHwxNzgxOTg2NzQ1fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Blank clipboard for empty state"
+    },
+    "hero_blueprint": {
+      "url": "https://images.unsplash.com/photo-1721244654394-36a7bc2da288?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDJ8MHwxfHNlYXJjaHwyfHxjb25zdHJ1Y3Rpb24lMjBibHVlcHJpbnQlMjBhcmNoaXRlY3R1cmV8ZW58MHx8fHwxNzgxOTg2NzQxfDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Architectural blueprint backdrop"
+    }
+  },
+  "haptics": {
+    "tab_press": "light",
+    "add_item": "medium",
+    "save_quote": "success",
+    "delete_item": "warning"
+  },
+  "instructions_to_main_agent": [
+    "Strictly adhere to the '1 iOS-Native Clean' personality. The app must feel like an official, trustworthy enterprise utility, not a playful or generic web app.",
+    "Logo Requirement: You MUST include the user-uploaded Construções Barros logo in the app header and PDF template. The visual is described as: 'yellow houses with crossed hammer/wrench, blue CONSTRUÇÕES BARROS ribbon'.",
+    "PDF Generation: Utilize `expo-print` and `expo-sharing` to generate and share the PDF. The PDF HTML layout must closely mirror the user's existing formal document (table-based items, company header, signature block).",
+    "Line Item UX: For the mobile screen, do NOT build a horizontally scrolling table/spreadsheet for line items. Use vertical stacked cards (Name, Qty x Unit @ Price). Use a bottom sheet to add/edit items.",
+    "Sticky Actions: On the Create Quote screen, the 'Preview & Save' button MUST be fixed to the bottom of the screen (above safe area) using a glassmorphism container, so the user doesn't have to scroll past 20 items to save.",
+    "Dark Mode: Implement standard iOS dark mode using Slate 900 for surface, Slate 800 for cards, and light text. Ensure the brand blue (1E40AF) still pops or adjust to a slightly lighter blue variant for accessibility in dark mode if needed.",
+    "Typography: Use Plus Jakarta Sans for all UI elements. Use a monospaced variant (or use `fontVariant: ['tabular-nums']`) for all pricing and quantities to ensure they align properly.",
+    "Use Space Grotesk or tabular-nums for quotes IDs (e.g. 2026001)."
+  ]
+}

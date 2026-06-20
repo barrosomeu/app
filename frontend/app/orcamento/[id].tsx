@@ -300,6 +300,39 @@ export default function OrcamentoDetailScreen() {
             })}
           </View>
         </View>
+
+        {/* AÇÕES — Editar / Clonar */}
+        <View style={styles.actionsCard}>
+          <Pressable
+            style={styles.actionRow}
+            onPress={() => router.push(`/novo?editId=${orc.id}`)}
+            testID="edit-btn"
+          >
+            <View style={[styles.actionIcon, { backgroundColor: COLORS.brandTertiary }]}>
+              <Ionicons name="create-outline" size={20} color={COLORS.brandPrimary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.actionTitle}>Editar Orçamento</Text>
+              <Text style={styles.actionSub}>Alterar dados, itens, totais</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
+          </Pressable>
+          <View style={styles.actionDivider} />
+          <Pressable
+            style={styles.actionRow}
+            onPress={() => router.push(`/novo?cloneId=${orc.id}`)}
+            testID="clone-btn"
+          >
+            <View style={[styles.actionIcon, { backgroundColor: "#FEF3C7" }]}>
+              <Ionicons name="copy-outline" size={20} color="#B45309" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.actionTitle}>Clonar Orçamento</Text>
+              <Text style={styles.actionSub}>Criar novo com base neste</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
+          </Pressable>
+        </View>
       </ScrollView>
 
       <View style={[styles.actions, { paddingBottom: insets.bottom + SPACING.md }]}>
@@ -512,6 +545,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   statusBtnText: { fontWeight: "700", color: COLORS.onSurfaceTertiary, fontSize: 13 },
+
+  actionsCard: {
+    marginTop: SPACING.md,
+    backgroundColor: "#fff",
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: "hidden",
+  },
+  actionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.md,
+    padding: SPACING.md,
+  },
+  actionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actionTitle: { fontWeight: "700", color: COLORS.onSurface, fontSize: 14 },
+  actionSub: { color: COLORS.muted, fontSize: 12, marginTop: 2 },
+  actionDivider: { height: 1, backgroundColor: COLORS.divider, marginLeft: 64 },
 
   actions: {
     position: "absolute",

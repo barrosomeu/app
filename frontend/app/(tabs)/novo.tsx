@@ -11,13 +11,15 @@ import {
   Switch,
   Alert,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
-import { api, OrcamentoItem } from "@/src/api/orcamentos";
+import { api, OrcamentoItem, Cliente, Servico } from "@/src/api/orcamentos";
 import {
   COLORS,
   IVA_OPTIONS,
@@ -34,7 +36,15 @@ function genId() {
 export default function NovoOrcamentoScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [nextNumero, setNextNumero] = useState<string>("…");
+  const params = useLocalSearchParams<{ editId?: string; cloneId?: string }>();
+  const editId = typeof params.editId === "string" ? params.editId : undefined;
+  const cloneId = typeof params.cloneId === "string" ? params.cloneId : undefined;
+  const mode: "new" | "edit" | "clone" = editId ? "edit" : cloneId ? "clone" : "new";
+
+  const [autoNumero, setAutoNumero] = useState<string>("…");
+  const [numero, setNumero] = useState<string>("");
+  const [numeroEdited, setNumeroEdited] = useState(false);
+  const [showNumeroEdit, setShowNumeroEdit] = useState(false);
 
   const [paraSeguro, setParaSeguro] = useState(true);
   const [cliente, setCliente] = useState({
@@ -67,9 +77,67 @@ export default function NovoOrcamentoScreen() {
     iva: 23,
   });
 
+  // Catalogs
+  const [clientesDB, setClientesDB] = useState<Cliente[]>([]);
+  const [servicosDB, setServicosDB] = useState<Servico[]>([]);
+  const [showClientePicker, setShowClientePicker] = useState(false);
+  const [showServicoPicker, setShowServicoPicker] = useState(false);
+  const [clienteQuery, setClienteQuery] = useState("");
+  const [servicoQuery, setServicoQuery] = useState("");
+
   useEffect(() => {
-    api.nextNumber().then((r) => setNextNumero(r.numero)).catch(() => setNextNumero("—"));
+    api.nextNumber()
+      .then((r) => {
+        setAutoNumero(r.numero);
+        if (!numeroEdited && mode === "new") setNumero(r.numero);
+        if (mode === "clone" && !numeroEdited) setNumero(r.numero);
+      })
+      .catch(() => setAutoNumero("—"));
+    api.listClientes().then(setClientesDB).catch(() => {});
+    api.listServicos().then(setServicosDB).catch(() => {});
   }, []);
+
+  // Load existing orçamento for edit/clone
+  useFocusEffect(
+    useCallback(() => {
+      const sourceId = editId || cloneId;
+      if (!sourceId) return;
+      let cancelled = false;
+      (async () => {
+        try {
+          const o = await api.getOrcamento(sourceId);
+          if (cancelled) return;
+          setParaSeguro(o.para_seguro);
+          setCliente({
+            nome: o.cliente_nome,
+            nif: o.cliente_nif,
+            contacto: o.cliente_contacto,
+            morada: o.cliente_morada,
+          });
+          setSinistro({
+            segurado: o.segurado,
+            seguradora: o.seguradora,
+            apolice: o.apolice,
+            data: o.sinistro_data,
+            obra: o.obra,
+            vistoria: o.vistoria,
+          });
+          setItems(o.items.map((it) => ({ ...it, id: it.id || genId() })));
+          setObservacoes(o.observacoes);
+          setValidadeDias(String(o.validade_dias || 30));
+          if (mode === "edit") {
+            setNumero(o.numero);
+            setNumeroEdited(true);
+          }
+        } catch (e: any) {
+          Alert.alert("Erro", e?.message ?? "Erro a carregar orçamento");
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [editId, cloneId, mode])
+  );
 
   const subtotal = items.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
   const totalIva = items.reduce(
@@ -106,6 +174,30 @@ export default function NovoOrcamentoScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }
 
+  function pickCliente(c: Cliente) {
+    setCliente({
+      nome: c.nome,
+      nif: c.nif,
+      contacto: c.contacto,
+      morada: c.morada,
+    });
+    setShowClientePicker(false);
+    Haptics.selectionAsync();
+  }
+
+  function pickServico(s: Servico) {
+    setDraft({
+      id: "",
+      descricao: s.descricao,
+      quantidade: 1,
+      unidade: s.unidade,
+      preco_unitario: s.preco_unitario,
+      iva: s.iva,
+    });
+    setShowServicoPicker(false);
+    Haptics.selectionAsync();
+  }
+
   async function handleSave(goPreview: boolean) {
     if (!cliente.nome.trim()) {
       Alert.alert("Falta o cliente", "Indica pelo menos o nome do cliente.");
@@ -115,9 +207,14 @@ export default function NovoOrcamentoScreen() {
       Alert.alert("Sem itens", "Adiciona pelo menos um trabalho.");
       return;
     }
+    if (!numero.trim() || !/^\d{4,}$/.test(numero.trim())) {
+      Alert.alert("Número inválido", "O número deve ter pelo menos 4 dígitos (ex: 2026111).");
+      return;
+    }
     try {
       setSaving(true);
-      const orc = await api.createOrcamento({
+      const payload = {
+        numero: numero.trim(),
         cliente_nome: cliente.nome,
         cliente_nif: cliente.nif,
         cliente_contacto: cliente.contacto,
@@ -132,18 +229,29 @@ export default function NovoOrcamentoScreen() {
         items,
         validade_dias: parseInt(validadeDias) || 30,
         para_seguro: paraSeguro,
-        status: "rascunho",
-      } as any);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      // reset
-      setCliente({ nome: "", nif: "", contacto: "", morada: "" });
-      setSinistro({ segurado: "", seguradora: "", apolice: "", data: "", obra: "", vistoria: "" });
-      setItems([]);
-      setObservacoes("");
-      if (goPreview) {
-        router.push(`/orcamento/${orc.id}`);
+      };
+      let orc;
+      if (mode === "edit" && editId) {
+        orc = await api.updateOrcamento(editId, payload as any);
       } else {
-        router.push("/(tabs)");
+        orc = await api.createOrcamento({ ...payload, status: "rascunho" } as any);
+      }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // reset only in new mode
+      if (mode === "new") {
+        setCliente({ nome: "", nif: "", contacto: "", morada: "" });
+        setSinistro({ segurado: "", seguradora: "", apolice: "", data: "", obra: "", vistoria: "" });
+        setItems([]);
+        setObservacoes("");
+        setNumeroEdited(false);
+        const r = await api.nextNumber();
+        setAutoNumero(r.numero);
+        setNumero(r.numero);
+      }
+      if (goPreview) {
+        router.replace(`/orcamento/${orc.id}`);
+      } else {
+        router.replace("/(tabs)");
       }
     } catch (e: any) {
       Alert.alert("Erro", e?.message ?? "Não foi possível guardar");
@@ -158,10 +266,22 @@ export default function NovoOrcamentoScreen() {
       style={{ flex: 1, backgroundColor: COLORS.surface }}
     >
       <View style={[styles.header, { paddingTop: insets.top + SPACING.sm }]}>
-        <Text style={styles.headerTitle}>Novo Orçamento</Text>
-        <View style={styles.numPill}>
-          <Text style={styles.numPillText}>Nº {nextNumero}</Text>
-        </View>
+        {mode !== "new" && (
+          <Pressable onPress={() => router.back()} hitSlop={10} style={{ marginRight: 8 }}>
+            <Ionicons name="chevron-back" size={26} color={COLORS.onSurface} />
+          </Pressable>
+        )}
+        <Text style={styles.headerTitle}>
+          {mode === "edit" ? "Editar Orçamento" : mode === "clone" ? "Clonar Orçamento" : "Novo Orçamento"}
+        </Text>
+        <Pressable
+          style={styles.numPill}
+          onPress={() => setShowNumeroEdit(true)}
+          testID="numero-edit-btn"
+        >
+          <Text style={styles.numPillText}>Nº {numero || autoNumero}</Text>
+          <Ionicons name="pencil" size={12} color={COLORS.brandPrimary} />
+        </Pressable>
       </View>
 
       <ScrollView
@@ -169,7 +289,6 @@ export default function NovoOrcamentoScreen() {
         keyboardShouldPersistTaps="handled"
         testID="novo-form-scroll"
       >
-        {/* Para Seguro */}
         <View style={styles.switchRow}>
           <View style={{ flex: 1 }}>
             <Text style={styles.switchTitle}>Orçamento para seguradora</Text>
@@ -185,11 +304,27 @@ export default function NovoOrcamentoScreen() {
         </View>
 
         {/* CLIENTE */}
-        <SectionTitle icon="person" title="Cliente" />
+        <View style={styles.sectionTitleRow}>
+          <Ionicons name="person" size={16} color={COLORS.brandPrimary} />
+          <Text style={styles.sectionTitle}>Cliente</Text>
+          {clientesDB.length > 0 && (
+            <Pressable
+              style={styles.linkBtn}
+              onPress={() => {
+                setClienteQuery("");
+                setShowClientePicker(true);
+              }}
+              testID="cliente-picker-btn"
+            >
+              <Ionicons name="people" size={12} color={COLORS.brandPrimary} />
+              <Text style={styles.linkText}>Escolher existente</Text>
+            </Pressable>
+          )}
+        </View>
         <FormField
           label="Nome"
           value={cliente.nome}
-          onChangeText={(t) => setCliente({ ...cliente, nome: t })}
+          onChangeText={(t: string) => setCliente({ ...cliente, nome: t })}
           placeholder="Nome do cliente"
           testID="cliente-nome"
         />
@@ -198,7 +333,7 @@ export default function NovoOrcamentoScreen() {
             <FormField
               label="NIF"
               value={cliente.nif}
-              onChangeText={(t) => setCliente({ ...cliente, nif: t })}
+              onChangeText={(t: string) => setCliente({ ...cliente, nif: t })}
               placeholder="123456789"
               keyboardType="number-pad"
               testID="cliente-nif"
@@ -208,7 +343,7 @@ export default function NovoOrcamentoScreen() {
             <FormField
               label="Contacto"
               value={cliente.contacto}
-              onChangeText={(t) => setCliente({ ...cliente, contacto: t })}
+              onChangeText={(t: string) => setCliente({ ...cliente, contacto: t })}
               placeholder="Telefone/Email"
               testID="cliente-contacto"
             />
@@ -217,32 +352,32 @@ export default function NovoOrcamentoScreen() {
         <FormField
           label="Morada"
           value={cliente.morada}
-          onChangeText={(t) => setCliente({ ...cliente, morada: t })}
+          onChangeText={(t: string) => setCliente({ ...cliente, morada: t })}
           placeholder="Morada / Local da obra"
           testID="cliente-morada"
         />
 
-        {/* SINISTRO */}
         {paraSeguro && (
           <>
-            <SectionTitle icon="shield-checkmark" title="Sinistro / Seguradora" />
+            <View style={styles.sectionTitleRow}>
+              <Ionicons name="shield-checkmark" size={16} color={COLORS.brandPrimary} />
+              <Text style={styles.sectionTitle}>Sinistro / Seguradora</Text>
+            </View>
             <View style={styles.row2}>
               <View style={{ flex: 1 }}>
                 <FormField
                   label="Segurado"
                   value={sinistro.segurado}
-                  onChangeText={(t) => setSinistro({ ...sinistro, segurado: t })}
+                  onChangeText={(t: string) => setSinistro({ ...sinistro, segurado: t })}
                   placeholder="Nome do segurado"
-                  testID="sinistro-segurado"
                 />
               </View>
               <View style={{ flex: 1 }}>
                 <FormField
                   label="Seguradora"
                   value={sinistro.seguradora}
-                  onChangeText={(t) => setSinistro({ ...sinistro, seguradora: t })}
+                  onChangeText={(t: string) => setSinistro({ ...sinistro, seguradora: t })}
                   placeholder="Companhia"
-                  testID="sinistro-seguradora"
                 />
               </View>
             </View>
@@ -251,40 +386,39 @@ export default function NovoOrcamentoScreen() {
                 <FormField
                   label="Apólice"
                   value={sinistro.apolice}
-                  onChangeText={(t) => setSinistro({ ...sinistro, apolice: t })}
+                  onChangeText={(t: string) => setSinistro({ ...sinistro, apolice: t })}
                   placeholder="Nº apólice"
-                  testID="sinistro-apolice"
                 />
               </View>
               <View style={{ flex: 1 }}>
                 <FormField
                   label="Sinistro em"
                   value={sinistro.data}
-                  onChangeText={(t) => setSinistro({ ...sinistro, data: t })}
+                  onChangeText={(t: string) => setSinistro({ ...sinistro, data: t })}
                   placeholder="DD/MM/AAAA"
-                  testID="sinistro-data"
                 />
               </View>
             </View>
             <FormField
               label="Obra / Local"
               value={sinistro.obra}
-              onChangeText={(t) => setSinistro({ ...sinistro, obra: t })}
+              onChangeText={(t: string) => setSinistro({ ...sinistro, obra: t })}
               placeholder="Local da intervenção"
-              testID="sinistro-obra"
             />
             <FormField
               label="Vistoria"
               value={sinistro.vistoria}
-              onChangeText={(t) => setSinistro({ ...sinistro, vistoria: t })}
+              onChangeText={(t: string) => setSinistro({ ...sinistro, vistoria: t })}
               placeholder="Nome do perito / data"
-              testID="sinistro-vistoria"
             />
           </>
         )}
 
         {/* ITENS */}
-        <SectionTitle icon="hammer" title="Trabalhos" />
+        <View style={styles.sectionTitleRow}>
+          <Ionicons name="hammer" size={16} color={COLORS.brandPrimary} />
+          <Text style={styles.sectionTitle}>Trabalhos</Text>
+        </View>
 
         {items.length === 0 && !showItemForm && (
           <View style={styles.itemsEmpty}>
@@ -317,11 +451,26 @@ export default function NovoOrcamentoScreen() {
 
         {showItemForm ? (
           <View style={styles.itemForm} testID="item-form">
-            <Text style={styles.itemFormTitle}>Novo trabalho</Text>
+            <View style={styles.itemFormHead}>
+              <Text style={styles.itemFormTitle}>Novo trabalho</Text>
+              {servicosDB.length > 0 && (
+                <Pressable
+                  style={styles.linkBtn}
+                  onPress={() => {
+                    setServicoQuery("");
+                    setShowServicoPicker(true);
+                  }}
+                  testID="servico-picker-btn"
+                >
+                  <Ionicons name="bookmark" size={12} color={COLORS.brandPrimary} />
+                  <Text style={styles.linkText}>Catálogo</Text>
+                </Pressable>
+              )}
+            </View>
             <FormField
               label="Descrição"
               value={draft.descricao}
-              onChangeText={(t) => setDraft({ ...draft, descricao: t })}
+              onChangeText={(t: string) => setDraft({ ...draft, descricao: t })}
               placeholder="Ex.: Lavar e aplicação de massa WEBER"
               multiline
               testID="draft-descricao"
@@ -331,7 +480,7 @@ export default function NovoOrcamentoScreen() {
                 <FormField
                   label="Qtd"
                   value={String(draft.quantidade)}
-                  onChangeText={(t) =>
+                  onChangeText={(t: string) =>
                     setDraft({ ...draft, quantidade: parseFloat(t.replace(",", ".")) || 0 })
                   }
                   keyboardType="decimal-pad"
@@ -370,7 +519,7 @@ export default function NovoOrcamentoScreen() {
                 <FormField
                   label="Preço Unit. (€)"
                   value={String(draft.preco_unitario)}
-                  onChangeText={(t) =>
+                  onChangeText={(t: string) =>
                     setDraft({ ...draft, preco_unitario: parseFloat(t.replace(",", ".")) || 0 })
                   }
                   keyboardType="decimal-pad"
@@ -430,8 +579,10 @@ export default function NovoOrcamentoScreen() {
           </Pressable>
         )}
 
-        {/* OBSERVAÇÕES */}
-        <SectionTitle icon="document-text" title="Observações" />
+        <View style={styles.sectionTitleRow}>
+          <Ionicons name="document-text" size={16} color={COLORS.brandPrimary} />
+          <Text style={styles.sectionTitle}>Observações</Text>
+        </View>
         <TextInput
           style={styles.textArea}
           value={observacoes}
@@ -443,7 +594,10 @@ export default function NovoOrcamentoScreen() {
           testID="observacoes"
         />
 
-        <SectionTitle icon="time" title="Validade" />
+        <View style={styles.sectionTitleRow}>
+          <Ionicons name="time" size={16} color={COLORS.brandPrimary} />
+          <Text style={styles.sectionTitle}>Validade</Text>
+        </View>
         <View style={{ flexDirection: "row", gap: SPACING.sm }}>
           {["15", "30", "60", "90"].map((d) => {
             const active = validadeDias === d;
@@ -452,7 +606,6 @@ export default function NovoOrcamentoScreen() {
                 key={d}
                 style={[styles.miniChip, active && styles.miniChipActive]}
                 onPress={() => setValidadeDias(d)}
-                testID={`validade-${d}`}
               >
                 <Text style={[styles.miniChipText, active && styles.miniChipTextActive]}>
                   {d} dias
@@ -462,7 +615,6 @@ export default function NovoOrcamentoScreen() {
           })}
         </View>
 
-        {/* TOTAIS */}
         <View style={styles.totalsBox}>
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Subtotal</Text>
@@ -479,7 +631,6 @@ export default function NovoOrcamentoScreen() {
         </View>
       </ScrollView>
 
-      {/* STICKY BOTTOM ACTIONS */}
       <View style={[styles.stickyBar, { paddingBottom: insets.bottom + 80 }]}>
         <Pressable
           style={styles.secondaryBtn}
@@ -506,16 +657,156 @@ export default function NovoOrcamentoScreen() {
           )}
         </Pressable>
       </View>
-    </KeyboardAvoidingView>
-  );
-}
 
-function SectionTitle({ icon, title }: { icon: any; title: string }) {
-  return (
-    <View style={styles.sectionTitleRow}>
-      <Ionicons name={icon} size={16} color={COLORS.brandPrimary} />
-      <Text style={styles.sectionTitle}>{title}</Text>
-    </View>
+      {/* NUMERO EDIT MODAL */}
+      <Modal
+        visible={showNumeroEdit}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowNumeroEdit(false)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setShowNumeroEdit(false)}>
+          <Pressable style={styles.numeroModal} onPress={() => {}}>
+            <Text style={styles.numeroModalTitle}>Número do orçamento</Text>
+            <Text style={styles.muted}>
+              Por defeito atribuído automaticamente: {autoNumero}
+            </Text>
+            <TextInput
+              style={[styles.input, { marginTop: SPACING.md, fontSize: 22, fontWeight: "800", textAlign: "center" }]}
+              value={numero}
+              onChangeText={(t) => {
+                setNumero(t);
+                setNumeroEdited(true);
+              }}
+              keyboardType="number-pad"
+              testID="numero-edit-input"
+              autoFocus
+            />
+            <View style={{ flexDirection: "row", gap: SPACING.sm, marginTop: SPACING.md }}>
+              <Pressable
+                style={[styles.secondaryBtn, { flex: 1 }]}
+                onPress={() => {
+                  setNumero(autoNumero);
+                  setNumeroEdited(false);
+                  setShowNumeroEdit(false);
+                }}
+                testID="numero-reset"
+              >
+                <Ionicons name="refresh" size={16} color={COLORS.brandPrimary} />
+                <Text style={styles.secondaryBtnText}>Auto</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.primaryBtn, { flex: 1 }]}
+                onPress={() => setShowNumeroEdit(false)}
+                testID="numero-confirm"
+              >
+                <Text style={styles.primaryBtnText}>OK</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* CLIENTE PICKER */}
+      <Modal
+        visible={showClientePicker}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowClientePicker(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: COLORS.surface }}>
+          <View style={styles.pickerHeader}>
+            <Pressable onPress={() => setShowClientePicker(false)}>
+              <Text style={styles.modalCancel}>Cancelar</Text>
+            </Pressable>
+            <Text style={styles.modalTitle}>Escolher Cliente</Text>
+            <View style={{ width: 60 }} />
+          </View>
+          <View style={[styles.searchWrap, { margin: SPACING.lg }]}>
+            <Ionicons name="search" size={16} color={COLORS.muted} />
+            <TextInput
+              value={clienteQuery}
+              onChangeText={setClienteQuery}
+              placeholder="Procurar cliente…"
+              placeholderTextColor={COLORS.muted}
+              style={styles.searchInput}
+            />
+          </View>
+          <ScrollView contentContainerStyle={{ padding: SPACING.lg, paddingTop: 0 }}>
+            {clientesDB
+              .filter((c) => c.nome.toLowerCase().includes(clienteQuery.toLowerCase()))
+              .map((c) => (
+                <Pressable
+                  key={c.id}
+                  style={styles.pickerItem}
+                  onPress={() => pickCliente(c)}
+                  testID={`pick-cliente-${c.nome}`}
+                >
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>{c.nome.slice(0, 1).toUpperCase()}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.pickerName}>{c.nome}</Text>
+                    <Text style={styles.muted}>{c.contacto || c.nif || c.morada || "—"}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.muted} />
+                </Pressable>
+              ))}
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* SERVIÇO PICKER */}
+      <Modal
+        visible={showServicoPicker}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowServicoPicker(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: COLORS.surface }}>
+          <View style={styles.pickerHeader}>
+            <Pressable onPress={() => setShowServicoPicker(false)}>
+              <Text style={styles.modalCancel}>Cancelar</Text>
+            </Pressable>
+            <Text style={styles.modalTitle}>Catálogo</Text>
+            <View style={{ width: 60 }} />
+          </View>
+          <View style={[styles.searchWrap, { margin: SPACING.lg }]}>
+            <Ionicons name="search" size={16} color={COLORS.muted} />
+            <TextInput
+              value={servicoQuery}
+              onChangeText={setServicoQuery}
+              placeholder="Procurar serviço…"
+              placeholderTextColor={COLORS.muted}
+              style={styles.searchInput}
+            />
+          </View>
+          <ScrollView contentContainerStyle={{ padding: SPACING.lg, paddingTop: 0 }}>
+            {servicosDB
+              .filter((s) => s.descricao.toLowerCase().includes(servicoQuery.toLowerCase()))
+              .map((s) => (
+                <Pressable
+                  key={s.id}
+                  style={styles.pickerItem}
+                  onPress={() => pickServico(s)}
+                  testID={`pick-servico-${s.id}`}
+                >
+                  <View style={[styles.avatar, { backgroundColor: "#FEF3C7" }]}>
+                    <Ionicons name="construct" size={18} color="#B45309" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.pickerName} numberOfLines={2}>{s.descricao}</Text>
+                    <Text style={styles.muted}>
+                      {fmtEuro(s.preco_unitario)} / {s.unidade}  ·  usado {s.uso_count}×
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.muted} />
+                </Pressable>
+              ))}
+          </ScrollView>
+        </View>
+      </Modal>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -552,6 +843,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 20, fontWeight: "800", color: COLORS.onSurface },
   numPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     backgroundColor: COLORS.brandTertiary,
     paddingHorizontal: SPACING.md,
     paddingVertical: 6,
@@ -588,6 +882,17 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     textTransform: "uppercase",
   },
+  linkBtn: {
+    marginLeft: "auto",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: COLORS.brandTertiary,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 4,
+    borderRadius: RADIUS.pill,
+  },
+  linkText: { color: COLORS.brandPrimary, fontWeight: "700", fontSize: 11 },
   label: {
     fontSize: 11,
     fontWeight: "700",
@@ -663,11 +968,15 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     marginTop: SPACING.sm,
   },
+  itemFormHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: SPACING.sm,
+  },
   itemFormTitle: {
     fontWeight: "800",
     fontSize: 14,
     color: COLORS.brandPrimary,
-    marginBottom: SPACING.sm,
   },
   itemPreview: {
     textAlign: "right",
@@ -699,7 +1008,6 @@ const styles = StyleSheet.create({
   miniChipActive: { backgroundColor: COLORS.brandPrimary, borderColor: COLORS.brandPrimary },
   miniChipText: { color: COLORS.onSurfaceTertiary, fontWeight: "600", fontSize: 13 },
   miniChipTextActive: { color: "#fff" },
-
   totalsBox: {
     marginTop: SPACING.xl,
     backgroundColor: "#fff",
@@ -770,4 +1078,69 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.pill,
   },
   secondaryBtnText: { color: COLORS.brandPrimary, fontWeight: "800" },
+
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(15,23,42,0.55)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: SPACING.lg,
+  },
+  numeroModal: {
+    width: "100%",
+    backgroundColor: "#fff",
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+  },
+  numeroModalTitle: { fontSize: 16, fontWeight: "800", color: COLORS.onSurface },
+
+  pickerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  modalCancel: { color: COLORS.muted, fontWeight: "600", width: 60 },
+  modalTitle: { fontWeight: "800", fontSize: 16, color: COLORS.onSurface },
+  searchWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#fff",
+    paddingHorizontal: SPACING.md,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: Platform.OS === "ios" ? 12 : 8,
+    fontSize: 15,
+    color: COLORS.onSurface,
+  },
+  pickerItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.md,
+    backgroundColor: "#fff",
+    padding: SPACING.md,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: SPACING.sm,
+  },
+  pickerName: { fontWeight: "700", color: COLORS.onSurface, fontSize: 14 },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.brandTertiary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: { color: COLORS.brandPrimary, fontWeight: "800" },
 });

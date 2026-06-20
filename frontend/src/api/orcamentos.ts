@@ -59,6 +59,26 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
+export type Cliente = {
+  id: string;
+  nome: string;
+  nif: string;
+  contacto: string;
+  morada: string;
+  notas: string;
+  created_at: string;
+};
+
+export type Servico = {
+  id: string;
+  descricao: string;
+  unidade: string;
+  preco_unitario: number;
+  iva: number;
+  uso_count: number;
+  created_at: string;
+};
+
 export const api = {
   listOrcamentos: () => req<Orcamento[]>('/orcamentos'),
   getOrcamento: (id: string) => req<Orcamento>(`/orcamentos/${id}`),
@@ -72,4 +92,20 @@ export const api = {
   getCompany: () => req<CompanySettings>('/company'),
   updateCompany: (data: CompanySettings) =>
     req<CompanySettings>('/company', { method: 'PUT', body: JSON.stringify(data) }),
+
+  listClientes: () => req<Cliente[]>('/clientes'),
+  createCliente: (data: Partial<Cliente>) =>
+    req<Cliente>('/clientes', { method: 'POST', body: JSON.stringify(data) }),
+  updateCliente: (id: string, data: Partial<Cliente>) =>
+    req<Cliente>(`/clientes/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteCliente: (id: string) =>
+    req<{ ok: boolean }>(`/clientes/${id}`, { method: 'DELETE' }),
+
+  listServicos: () => req<Servico[]>('/servicos'),
+  createServico: (data: Partial<Servico>) =>
+    req<Servico>('/servicos', { method: 'POST', body: JSON.stringify(data) }),
+  updateServico: (id: string, data: Partial<Servico>) =>
+    req<Servico>(`/servicos/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteServico: (id: string) =>
+    req<{ ok: boolean }>(`/servicos/${id}`, { method: 'DELETE' }),
 };

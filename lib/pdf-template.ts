@@ -108,7 +108,8 @@ export function buildOrcamentoHtml(
     color: #475569; text-align: center; }
   .footer { margin-top: 22px; text-align: center; color: #94A3B8; font-size: 9px;
     border-top: 1px solid #E2E8F0; padding-top: 8px; }
-  @media print { body { padding: 0; } }
+  @page { size: A4; margin: 0; }
+  @media print { body { padding: 12mm 12mm 14mm 12mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style>
 </head>
 <body>

@@ -77,7 +77,7 @@ export function DefinicoesManager({
         <button
           onClick={save}
           disabled={pending}
-          className="mt-5 flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
+          className="pressable mt-5 flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
           {saved ? <Check size={18} /> : <Save size={18} />}
           {saved ? "Guardado" : pending ? "A guardar…" : "Guardar dados"}
@@ -100,10 +100,11 @@ export function DefinicoesManager({
           </div>
         ) : (
           <ul className="flex flex-col gap-2">
-            {servicos.map((s) => (
+            {servicos.map((s, i) => (
               <li
                 key={s.id}
-                className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 p-3"
+                className="animate-in-up flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 p-3"
+                style={{ animationDelay: `${Math.min(i * 30, 300)}ms` }}
               >
                 <div className="min-w-0">
                   <p className="truncate font-medium text-foreground">{s.descricao}</p>
@@ -115,7 +116,7 @@ export function DefinicoesManager({
                   onClick={() => removeServico(s.id)}
                   disabled={pending}
                   aria-label="Eliminar serviço"
-                  className="shrink-0 rounded-lg p-2 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+                  className="pressable shrink-0 rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                 >
                   <Trash2 size={18} />
                 </button>

@@ -77,7 +77,7 @@ export function OrcamentoDetail({
           <button
             onClick={() => router.push("/")}
             aria-label="Voltar"
-            className="rounded-lg border border-border bg-card p-2 text-muted-foreground transition hover:bg-muted"
+            className="pressable rounded-lg border border-border bg-card p-2 text-muted-foreground hover:bg-muted"
           >
             <ArrowLeft size={18} />
           </button>
@@ -103,7 +103,7 @@ export function OrcamentoDetail({
             key={s}
             onClick={() => changeStatus(s)}
             disabled={pending}
-            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+            className={`pressable flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium ${
               status === s
                 ? "border-transparent text-white"
                 : "border-border bg-card text-muted-foreground hover:text-foreground"
@@ -138,8 +138,8 @@ export function OrcamentoDetail({
 
       {/* Delete confirm */}
       {confirmDelete ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4">
-          <div className="w-full max-w-sm rounded-xl border border-border bg-card p-5 shadow-lg">
+        <div className="animate-in-fade fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4 backdrop-blur-sm">
+          <div className="animate-scale-in w-full max-w-sm rounded-xl border border-border bg-card p-5 shadow-lg">
             <h3 className="font-semibold text-foreground">Eliminar orçamento?</h3>
             <p className="mt-1 text-sm text-muted-foreground">
               O orçamento #{orcamento.numero} será removido permanentemente.
@@ -147,14 +147,14 @@ export function OrcamentoDetail({
             <div className="mt-4 flex justify-end gap-2">
               <button
                 onClick={() => setConfirmDelete(false)}
-                className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
+                className="pressable rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
               >
                 Cancelar
               </button>
               <button
                 onClick={remove}
                 disabled={pending}
-                className="rounded-lg bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground transition hover:opacity-90 disabled:opacity-50"
+                className="pressable rounded-lg bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground hover:opacity-90 disabled:opacity-50"
               >
                 Eliminar
               </button>
@@ -182,7 +182,7 @@ function ActionButton({
   disabled?: boolean
 }) {
   const base =
-    "flex flex-col items-center justify-center gap-1.5 rounded-xl border p-3 text-sm font-medium transition disabled:opacity-50"
+    "pressable flex flex-col items-center justify-center gap-1.5 rounded-xl border p-3 text-sm font-medium disabled:opacity-50"
   const cls = primary
     ? "border-transparent bg-primary text-primary-foreground hover:opacity-90"
     : danger

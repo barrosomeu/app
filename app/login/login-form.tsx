@@ -30,7 +30,7 @@ export function LoginForm() {
   return (
     <form
       onSubmit={submit}
-      className="w-full max-w-sm rounded-2xl border border-border bg-card p-8 shadow-sm"
+      className="animate-scale-in w-full max-w-sm rounded-2xl border border-border bg-card p-8 shadow-sm"
     >
       <div className="mb-6 flex flex-col items-center gap-3 text-center">
         <Image
@@ -66,7 +66,7 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={pending || !pin}
-        className="mt-5 w-full rounded-lg bg-primary px-4 py-2.5 font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
+        className="pressable mt-5 w-full rounded-lg bg-primary px-4 py-2.5 font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
       >
         {pending ? "A entrar…" : "Entrar"}
       </button>

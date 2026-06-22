@@ -69,7 +69,7 @@ export function OrcamentosList({ orcamentos }: { orcamentos: Orcamento[] }) {
         <h1 className="text-2xl font-bold text-foreground">Orçamentos</h1>
         <Link
           href="/novo"
-          className="hidden items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 md:flex"
+          className="pressable hidden items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 md:flex"
         >
           <Plus size={18} />
           Novo orçamento
@@ -78,10 +78,10 @@ export function OrcamentosList({ orcamentos }: { orcamentos: Orcamento[] }) {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Total" value={String(stats.total)} hint="orçamentos" />
-        <StatCard label="Aceites" value={String(stats.aceites)} hint="adjudicados" />
-        <StatCard label="Valor aceite" value={fmtEuro(stats.valorAceite)} hint="c/ IVA" accent />
-        <StatCard label="Valor total" value={fmtEuro(stats.valorTotal)} hint="todos" />
+        <StatCard label="Total" value={String(stats.total)} hint="orçamentos" delay={0} />
+        <StatCard label="Aceites" value={String(stats.aceites)} hint="adjudicados" delay={60} />
+        <StatCard label="Valor aceite" value={fmtEuro(stats.valorAceite)} hint="c/ IVA" accent delay={120} />
+        <StatCard label="Valor total" value={fmtEuro(stats.valorTotal)} hint="todos" delay={180} />
       </div>
 
       {/* Search + filters */}
@@ -101,7 +101,7 @@ export function OrcamentosList({ orcamentos }: { orcamentos: Orcamento[] }) {
           </div>
           <button
             onClick={exportCSV}
-            className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2.5 text-sm font-medium text-foreground transition hover:bg-muted"
+            className="pressable flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
           >
             <Download size={18} />
             <span className="hidden sm:inline">CSV</span>
@@ -113,7 +113,7 @@ export function OrcamentosList({ orcamentos }: { orcamentos: Orcamento[] }) {
             <button
               key={f.key}
               onClick={() => setFilter(f.key)}
-              className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+              className={`pressable rounded-full px-3.5 py-1.5 text-sm font-medium ${
                 filter === f.key
                   ? "bg-foreground text-background"
                   : "border border-border bg-card text-muted-foreground hover:text-foreground"
@@ -138,11 +138,11 @@ export function OrcamentosList({ orcamentos }: { orcamentos: Orcamento[] }) {
         </div>
       ) : (
         <ul className="flex flex-col gap-3">
-          {filtered.map((o) => (
-            <li key={o.id}>
+          {filtered.map((o, i) => (
+            <li key={o.id} className="animate-in-up" style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}>
               <Link
                 href={`/orcamento/${o.id}`}
-                className="flex items-center justify-between gap-4 rounded-xl border border-border bg-card p-4 transition hover:border-primary hover:shadow-sm"
+                className="pressable flex items-center justify-between gap-4 rounded-xl border border-border bg-card p-4 hover:border-primary hover:shadow-md"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -175,7 +175,7 @@ export function OrcamentosList({ orcamentos }: { orcamentos: Orcamento[] }) {
       <Link
         href="/novo"
         aria-label="Novo orçamento"
-        className="fixed bottom-20 right-4 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition hover:opacity-90 md:hidden"
+        className="pressable animate-scale-in fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-20 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:opacity-90 md:hidden"
       >
         <Plus size={26} />
       </Link>
@@ -188,17 +188,20 @@ function StatCard({
   value,
   hint,
   accent,
+  delay = 0,
 }: {
   label: string
   value: string
   hint: string
   accent?: boolean
+  delay?: number
 }) {
   return (
     <div
-      className={`rounded-xl border p-4 ${
+      className={`animate-in-up rounded-xl border p-4 ${
         accent ? "border-primary/30 bg-primary/5" : "border-border bg-card"
       }`}
+      style={{ animationDelay: `${delay}ms` }}
     >
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="mt-1 text-xl font-bold text-foreground">{value}</p>

@@ -44,7 +44,7 @@ export function ClientesManager({ clientes }: { clientes: Cliente[] }) {
         <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
         <button
           onClick={() => setCreating(true)}
-          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+          className="pressable flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
         >
           <Plus size={18} />
           <span className="hidden sm:inline">Novo cliente</span>
@@ -74,10 +74,11 @@ export function ClientesManager({ clientes }: { clientes: Cliente[] }) {
         </div>
       ) : (
         <ul className="flex flex-col gap-3">
-          {filtered.map((c) => (
+          {filtered.map((c, i) => (
             <li
               key={c.id}
-              className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4"
+              className="animate-in-up flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4"
+              style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}
             >
               <div className="min-w-0">
                 <p className="truncate font-semibold text-foreground">{c.nome}</p>
@@ -90,7 +91,7 @@ export function ClientesManager({ clientes }: { clientes: Cliente[] }) {
                 <button
                   onClick={() => setEditing(c)}
                   aria-label="Editar"
-                  className="rounded-lg p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                  className="pressable rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
                   <Pencil size={18} />
                 </button>
@@ -98,7 +99,7 @@ export function ClientesManager({ clientes }: { clientes: Cliente[] }) {
                   onClick={() => remove(c.id)}
                   disabled={pending}
                   aria-label="Eliminar"
-                  className="rounded-lg p-2 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+                  className="pressable rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                 >
                   <Trash2 size={18} />
                 </button>
@@ -161,14 +162,14 @@ function ClienteModal({
     setForm((f) => ({ ...f, [k]: e.target.value }))
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 p-0 sm:items-center sm:p-4">
-      <div className="w-full max-w-md rounded-t-2xl border border-border bg-card p-5 shadow-lg sm:rounded-2xl">
+    <div className="animate-in-fade fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+      <div className="animate-in-up w-full max-w-md rounded-t-2xl border border-border bg-card p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-lg sm:rounded-2xl sm:pb-5">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-foreground">{title}</h3>
           <button
             onClick={onClose}
             aria-label="Fechar"
-            className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-muted"
+            className="pressable rounded-lg p-1.5 text-muted-foreground hover:bg-muted"
           >
             <X size={20} />
           </button>
@@ -193,14 +194,14 @@ function ClienteModal({
         <div className="mt-5 flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
+            className="pressable rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
           >
             Cancelar
           </button>
           <button
             onClick={() => onSave({ ...form, nome: form.nome.trim() })}
             disabled={pending || !form.nome.trim()}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
+            className="pressable rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
             {pending ? "A guardar…" : "Guardar"}
           </button>

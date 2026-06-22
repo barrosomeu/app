@@ -183,7 +183,7 @@ export function OrcamentoForm({
         <button
           onClick={() => router.back()}
           aria-label="Voltar"
-          className="rounded-lg border border-border bg-card p-2 text-muted-foreground transition hover:bg-muted"
+          className="pressable rounded-lg border border-border bg-card p-2 text-muted-foreground hover:bg-muted"
         >
           <ArrowLeft size={18} />
         </button>
@@ -213,7 +213,7 @@ export function OrcamentoForm({
                 type="button"
                 onClick={() => setNumeroLocked((v) => !v)}
                 aria-label={numeroLocked ? "Desbloquear número" : "Bloquear número"}
-                className="rounded-lg border border-border bg-card p-2 text-muted-foreground transition hover:bg-muted"
+                className="pressable rounded-lg border border-border bg-card p-2 text-muted-foreground hover:bg-muted"
               >
                 {numeroLocked ? <Lock size={18} /> : <Unlock size={18} />}
               </button>
@@ -333,7 +333,7 @@ export function OrcamentoForm({
           <button
             type="button"
             onClick={addItem}
-            className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+            className="pressable flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
           >
             <Plus size={16} />
             Adicionar
@@ -344,7 +344,7 @@ export function OrcamentoForm({
           {items.map((it, idx) => {
             const line = (Number(it.quantidade) || 0) * (Number(it.preco_unitario) || 0)
             return (
-              <div key={it.id} className="rounded-xl border border-border bg-muted/40 p-3">
+              <div key={it.id} className="animate-in-up rounded-xl border border-border bg-muted/40 p-3">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Item {idx + 1}
@@ -366,7 +366,7 @@ export function OrcamentoForm({
                       type="button"
                       onClick={() => removeItem(it.id)}
                       aria-label="Remover item"
-                      className="rounded p-1 text-muted-foreground transition hover:text-destructive"
+                      className="pressable rounded p-1 text-muted-foreground hover:text-destructive"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -474,11 +474,11 @@ export function OrcamentoForm({
         </div>
       </div>
 
-      <div className="sticky bottom-20 z-10 md:bottom-4">
+      <div className="sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] z-10 md:bottom-4">
         <button
           onClick={save}
           disabled={pending}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground shadow-lg transition hover:opacity-90 disabled:opacity-50"
+          className="pressable flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground shadow-lg hover:opacity-90 disabled:opacity-50"
         >
           <Save size={18} />
           {pending ? "A guardar…" : mode === "edit" ? "Guardar alterações" : "Criar orçamento"}

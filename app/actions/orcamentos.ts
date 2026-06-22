@@ -278,3 +278,34 @@ export async function deleteOrcamento(id: string): Promise<void> {
   await db.delete(orcamentos).where(eq(orcamentos.id, id))
   revalidatePath("/")
 }
+
+export async function cloneOrcamento(id: string): Promise<Orcamento> {
+  const src = await getOrcamento(id)
+  if (!src) throw new Error("Orçamento não encontrado")
+  return createOrcamento({
+    cliente_nome: src.cliente_nome,
+    cliente_morada: src.cliente_morada,
+    cliente_nif: src.cliente_nif,
+    cliente_contacto: src.cliente_contacto,
+    segurado: src.segurado,
+    apolice: src.apolice,
+    seguradora: src.seguradora,
+    sinistro_data: src.sinistro_data,
+    obra: src.obra,
+    vistoria: src.vistoria,
+    observacoes: src.observacoes,
+    items: src.items.map((it) => ({ ...it, id: genId() })),
+    validade_dias: src.validade_dias,
+    status: "rascunho",
+    para_seguro: src.para_seguro,
+  })
+}
+
+export async function setStatus(
+  id: string,
+  status: "rascunho" | "enviado" | "aceite",
+): Promise<void> {
+  await db.update(orcamentos).set({ status, updated_at: new Date() }).where(eq(orcamentos.id, id))
+  revalidatePath("/")
+  revalidatePath(`/orcamento/${id}`)
+}

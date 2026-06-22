@@ -1,5 +1,4 @@
-export const LOGO_URL =
-  "https://customer-assets.emergentagent.com/job_eacdcc40-9d95-4cf9-a7d7-f7e2369a451c/artifacts/bwnztz2z_logo.png"
+export const LOGO_URL = "/logo.png"
 
 export const STATUS_LABELS: Record<string, string> = {
   rascunho: "Rascunho",
